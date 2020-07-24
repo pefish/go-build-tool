@@ -30,6 +30,7 @@ func main() {
 	targetOsPtr := flagSet.String("os", runtime.GOOS, "目标平台，默认当前平台。darwin/linux/windows/all")
 	isPackPtr := flagSet.Bool("pack", false, "是否打包成压缩文件")
 	packageNamePtr := flagSet.String("p", "./bin/...", "包名，默认是./bin/...")
+	isCgo := flagSet.Bool("cgo", false, "是否启用cgo")
 
 	err := flagSet.Parse(os.Args[1:])
 	if err != nil {
@@ -42,11 +43,15 @@ func main() {
 	}
 
 	if *targetOsPtr == "darwin" {
-		mustBuild("darwin", *packageNamePtr)
+		mustBuild("darwin", *packageNamePtr, *isCgo)
 	} else if *targetOsPtr == "linux" {
-		mustBuild("linux", *packageNamePtr)
+		mustBuild("linux", *packageNamePtr, *isCgo)
 	} else if *targetOsPtr == "windows" {
-		mustBuild("windows", *packageNamePtr)
+		mustBuild("windows", *packageNamePtr, *isCgo)
+	} else if *targetOsPtr == "all" {
+		mustBuild("darwin", *packageNamePtr, *isCgo)
+		mustBuild("linux", *packageNamePtr, *isCgo)
+		mustBuild("windows", *packageNamePtr, *isCgo)
 	} else {
 		log.Fatal("sub command error")
 	}
@@ -56,7 +61,7 @@ func main() {
 	fmt.Println("\nDone!!!")
 }
 
-func mustBuild(goos string, packageName string) {
+func mustBuild(goos string, packageName string, isCgo bool) {
 	outputPath := targetPath + goos + "/"
 	err := os.MkdirAll(outputPath, os.ModePerm)
 	if err != nil {
@@ -64,13 +69,32 @@ func mustBuild(goos string, packageName string) {
 	}
 
 	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", outputPath, "-v", packageName)
-	goBin, _ := filepath.Abs(targetPath)
-	cmd.Env = append(cmd.Env, "GOBIN="+goBin)
-	cmd.Env = append(cmd.Env, "GOOS="+goos)
+	goBin, err := filepath.Abs(targetPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	isCgoStr := "0"
+	if isCgo {
+		isCgoStr = "1"
+	}
+	envs := map[string]string{
+		"GOBIN": goBin,
+		"GOOS": goos,
+		"CGO_ENABLED": isCgoStr,
+		"GOARCH": "amd64",
+	}
+	for key, val := range envs {
+		cmd.Env = append(cmd.Env, key +"="+val)
+		fmt.Printf(">>> %s=%s\n", key, val)
+	}
+here:
 	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "GOBIN=") {
-			continue
+		for key, _ := range envs {
+			if strings.HasPrefix(e, key + "=") {
+				continue here
+			}
 		}
+
 		cmd.Env = append(cmd.Env, e)
 	}
 
