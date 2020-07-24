@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -15,48 +16,54 @@ import (
 var buildPath = "./build/"
 var targetPath = buildPath + "bin/"
 var packPath = buildPath + "pack/"
-var sourcePath = "./"
 
 func main() {
-	if len(os.Args) < 2 {
-		log.Fatal("build args error")
+	flagSet := flag.NewFlagSet("go-build-tool", flag.ExitOnError)
+
+	flagSet.Usage = func() {
+		fmt.Fprintf(flagSet.Output(), "\n%s%s 是一个简单的构建工具\n\n", strings.ToUpper(string(flagSet.Name()[0])), flagSet.Name()[1:])
+		fmt.Fprintf(flagSet.Output(), "Usage of %s:\n", flagSet.Name())
+		flagSet.PrintDefaults()
+		fmt.Fprintf(flagSet.Output(), "\n")
 	}
-	err := os.RemoveAll(buildPath)
+
+	targetOsPtr := flagSet.String("os", runtime.GOOS, "目标平台，默认当前平台。darwin/linux/windows/all")
+	isPackPtr := flagSet.Bool("pack", false, "是否打包成压缩文件")
+	packageNamePtr := flagSet.String("p", "./bin/...", "包名，默认是./bin/...")
+
+	err := flagSet.Parse(os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
 	}
-	subCmd := os.Args[1]
-	if len(os.Args) > 2 {
-		sourcePath = os.Args[2]
+
+	err = os.RemoveAll(buildPath)
+	if err != nil {
+		log.Fatal(err)
 	}
-	if subCmd == "build-cur" {
-		mustBuild(runtime.GOOS)
-	} else if subCmd == "build-cur-pack" {
-		mustBuild(runtime.GOOS)
-		mustPack(targetPath, packPath + "release_"+ runtime.GOOS + ".tar.gz")
-	} else if subCmd == "build-all" {
-		mustBuild("darwin")
-		mustBuild("linux")
-		mustBuild("windows")
-	} else if subCmd == "build-all-pack" {
-		mustBuild("darwin")
-		mustBuild("linux")
-		mustBuild("windows")
-		mustPack(targetPath, packPath + "release_all.tar.gz")
+
+	if *targetOsPtr == "darwin" {
+		mustBuild("darwin", *packageNamePtr)
+	} else if *targetOsPtr == "linux" {
+		mustBuild("linux", *packageNamePtr)
+	} else if *targetOsPtr == "windows" {
+		mustBuild("windows", *packageNamePtr)
 	} else {
 		log.Fatal("sub command error")
+	}
+	if *isPackPtr {
+		mustPack(targetPath, packPath + "release_"+ *targetOsPtr + ".tar.gz")
 	}
 	fmt.Println("\nDone!!!")
 }
 
-func mustBuild(goos string) {
+func mustBuild(goos string, packageName string) {
 	outputPath := targetPath + goos + "/"
 	err := os.MkdirAll(outputPath, os.ModePerm)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", outputPath, "-v", sourcePath + "bin/...")
+	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "build", "-o", outputPath, "-v", packageName)
 	goBin, _ := filepath.Abs(targetPath)
 	cmd.Env = append(cmd.Env, "GOBIN="+goBin)
 	cmd.Env = append(cmd.Env, "GOOS="+goos)
