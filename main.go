@@ -29,7 +29,7 @@ func main() {
 
 	targetOsPtr := flagSet.String("os", runtime.GOOS, "目标平台，默认当前平台。darwin/linux/windows/all")
 	isPackPtr := flagSet.Bool("pack", false, "是否打包成压缩文件")
-	packageNamePtr := flagSet.String("p", "./bin/...", "包名，默认是./bin/...")
+	packageNamePtr := flagSet.String("p", "./cmd/...", "包名，默认是./cmd/...")
 	isCgo := flagSet.Bool("cgo", false, "是否启用cgo")
 
 	err := flagSet.Parse(os.Args[1:])
@@ -43,15 +43,15 @@ func main() {
 	}
 
 	if *targetOsPtr == "darwin" {
-		mustBuild("darwin", *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "darwin", *packageNamePtr, *isCgo)
 	} else if *targetOsPtr == "linux" {
-		mustBuild("linux", *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "linux", *packageNamePtr, *isCgo)
 	} else if *targetOsPtr == "windows" {
-		mustBuild("windows", *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "windows", *packageNamePtr, *isCgo)
 	} else if *targetOsPtr == "all" {
-		mustBuild("darwin", *packageNamePtr, *isCgo)
-		mustBuild("linux", *packageNamePtr, *isCgo)
-		mustBuild("windows", *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "darwin", *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "linux", *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "windows", *packageNamePtr, *isCgo)
 	} else {
 		log.Fatal("sub command error")
 	}
@@ -61,7 +61,7 @@ func main() {
 	fmt.Println("\nDone!!!")
 }
 
-func mustBuild(goos string, packageName string, isCgo bool) {
+func mustBuild(targetPath, goos string, packageName string, isCgo bool) {
 	outputPath := targetPath + goos + "/"
 	err := os.MkdirAll(outputPath, os.ModePerm)
 	if err != nil {
