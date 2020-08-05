@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"flag"
 	"fmt"
 	"io"
@@ -112,8 +113,10 @@ func mustPack(targetPath string, dst string) {
 		log.Fatal(err)
 	}
 	defer fw.Close()
-	tw := tar.NewWriter(fw)
-	defer tw.Close()
+
+	gzipW := gzip.NewWriter(fw)
+
+	tw := tar.NewWriter(gzipW)
 	err = filepath.Walk(targetPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Printf("walk error - %s\n", err)
@@ -154,6 +157,14 @@ func mustPack(targetPath string, dst string) {
 
 		return nil
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = tw.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = gzipW.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
