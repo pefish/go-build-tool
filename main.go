@@ -31,7 +31,7 @@ func main() {
 	targetOsPtr := flagSet.String("os", runtime.GOOS, "目标平台，默认当前平台。darwin/linux/windows/all")
 	isPackPtr := flagSet.Bool("pack", false, "是否打包成压缩文件")
 	packageNamePtr := flagSet.String("p", "./cmd/...", "包名，默认是./cmd/...")
-	isCgo := flagSet.Bool("cgo", false, "是否启用cgo")
+	isCgo := flagSet.Bool("cgo", true, "是否启用cgo")
 
 	err := flagSet.Parse(os.Args[1:])
 	if err != nil {
