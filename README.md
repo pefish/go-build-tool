@@ -2,7 +2,7 @@
 ## Install
 
 ```shell script
-go get -u github.com/pefish/go-build-tool
+go get -u github.com/pefish/go-build-tool/cmd/...
 ```
 
 ## Example

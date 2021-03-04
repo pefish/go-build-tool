@@ -82,7 +82,7 @@ func mustBuild(targetPath, goos string, packageName string, isCgo bool) {
 		"GOBIN": goBin,
 		"GOOS": goos,
 		"CGO_ENABLED": isCgoStr,
-		"GOARCH": "amd64",
+		"GOARCH": runtime.GOARCH,
 	}
 	//if goos == "windows" {  // 对于 Windows ，可以选择使用 x86_64-w64-mingw32-gcc 编译器
 	//	envs["CC"] = "x86_64-w64-mingw32-gcc"
