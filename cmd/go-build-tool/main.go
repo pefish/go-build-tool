@@ -29,6 +29,7 @@ func main() {
 	}
 
 	targetOsPtr := flagSet.String("os", runtime.GOOS, "目标平台，默认当前平台。darwin/linux/windows/all")
+	archPtr := flagSet.String("arch", runtime.GOARCH, "目标架构，默认当前平台。amd64/arm64")
 	isPackPtr := flagSet.Bool("pack", false, "是否打包成压缩文件")
 	packageNamePtr := flagSet.String("p", "./cmd/...", "包名，默认是./cmd/...")
 	isCgo := flagSet.Bool("cgo", true, "是否启用cgo")
@@ -44,25 +45,25 @@ func main() {
 	}
 
 	if *targetOsPtr == "darwin" {
-		mustBuild(targetPath, "darwin", *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "darwin", *archPtr, *packageNamePtr, *isCgo)
 	} else if *targetOsPtr == "linux" {
-		mustBuild(targetPath, "linux", *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "linux", *archPtr, *packageNamePtr, *isCgo)
 	} else if *targetOsPtr == "windows" {
-		mustBuild(targetPath, "windows", *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "windows", *archPtr, *packageNamePtr, *isCgo)
 	} else if *targetOsPtr == "all" {
-		mustBuild(targetPath, "darwin", *packageNamePtr, *isCgo)
-		mustBuild(targetPath, "linux", *packageNamePtr, *isCgo)
-		mustBuild(targetPath, "windows", *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "darwin", *archPtr, *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "linux", *archPtr, *packageNamePtr, *isCgo)
+		mustBuild(targetPath, "windows", *archPtr, *packageNamePtr, *isCgo)
 	} else {
 		log.Fatal("sub command error")
 	}
 	if *isPackPtr {
-		mustPack(targetPath, packPath + "release_"+ *targetOsPtr + ".tar.gz")
+		mustPack(targetPath, packPath+"release_"+*targetOsPtr+".tar.gz")
 	}
 	fmt.Println("\nDone!!!")
 }
 
-func mustBuild(targetPath, goos string, packageName string, isCgo bool) {
+func mustBuild(targetPath, goos string, arch string, packageName string, isCgo bool) {
 	outputPath := targetPath + goos + "/"
 	err := os.MkdirAll(outputPath, os.ModePerm)
 	if err != nil {
@@ -79,22 +80,22 @@ func mustBuild(targetPath, goos string, packageName string, isCgo bool) {
 		isCgoStr = "1"
 	}
 	envs := map[string]string{
-		"GOBIN": goBin,
-		"GOOS": goos,
+		"GOBIN":       goBin,
+		"GOOS":        goos,
 		"CGO_ENABLED": isCgoStr,
-		"GOARCH": runtime.GOARCH,
+		"GOARCH":      arch,
 	}
 	//if goos == "windows" {  // 对于 Windows ，可以选择使用 x86_64-w64-mingw32-gcc 编译器
 	//	envs["CC"] = "x86_64-w64-mingw32-gcc"
 	//}
 	for key, val := range envs {
-		cmd.Env = append(cmd.Env, key +"="+val)
+		cmd.Env = append(cmd.Env, key+"="+val)
 		fmt.Printf(">>> %s=%s\n", key, val)
 	}
 here:
 	for _, e := range os.Environ() {
 		for key, _ := range envs {
-			if strings.HasPrefix(e, key + "=") {
+			if strings.HasPrefix(e, key+"=") {
 				continue here
 			}
 		}
